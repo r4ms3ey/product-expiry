@@ -234,9 +234,24 @@ if(isset($_POST["btnsave"])){
       <div class="row">
         <div class="col-md-3">
         <div class="form-group">
-          <label>Customer Name</label>
-          <input type="text" class="form-control" name="cmdcustomer" id="cmdcustomer" placeholder="Enter customer name" required>
-        </div>
+                  <label>Choose Customer</label>
+                         <?php
+			      $sql = "select * from customer";
+             $drug = $dbh->query($sql);                       
+             $drug->setFetchMode(PDO::FETCH_ASSOC);
+             echo '<select name="cmdcustomer"  id="cmdcustomer" class="form-control select2" style="width: 100%;" >';
+			 			     echo '<option value="">Select Customer</option>';
+             while ( $row = $drug->fetch() ) 
+             {
+                echo '<option value="'.$row['fullName'].'">'.$row['fullName'].'</option>';
+             }
+
+             echo '</select>';
+			     ?>     
+
+
+
+                </div>
         <!-- /.form-group -->
         <div class="form-group">
             <label for="exampleInputEmail1">Sales Date</label>
