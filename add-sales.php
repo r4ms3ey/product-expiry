@@ -10,58 +10,6 @@ $email = $_SESSION["login_email"];
 $stmt = $dbh->query("SELECT * FROM users where email='$email'");
 $row_user = $stmt->fetch();
 
-// --- Handle new customer creation BEFORE sales logic ---
-if(isset($_POST["btnsave"])) {
-  if (isset($_POST['cmdcustomer']) && $_POST['cmdcustomer'] === '__add_new__') {
-  // Collect new customer data
-  $fullname = trim($_POST['new_customer_fullname']);
-  $email_cust = trim($_POST['new_customer_email']);
-  $mobile = trim($_POST['new_customer_mobile']);
-  $phone2 = trim($_POST['new_customer_phone2']);
-  $address1 = trim($_POST['new_customer_address1']);
-  $address2 = trim($_POST['new_customer_address2']);
-  $city = trim($_POST['new_customer_city']);
-  $district = trim($_POST['new_customer_district']);
-  $status = trim($_POST['new_customer_status']);
-  // Validate email
-    if (!filter_var($email_cust, FILTER_VALIDATE_EMAIL)) {
-      $_SESSION['error'] = 'Invalid email format for new customer.';
-      return;
-    }
-
-    // Ensure numbers start with +255
-    $mobile = preg_replace('/\s+/', '', $mobile);
-    if (strpos($mobile, '+255') !== 0) {
-      $mobile = '+255' . ltrim($mobile, '0+');
-      $_SESSION['error'] = 'Invalid number format for new customer.phone number should start with +255';
-      }
-    $phone2 = preg_replace('/\s+/', '', $phone2);
-    if (strpos($phone2, '+255') !== 0) {
-      $phone2 = '+255' . ltrim($phone2, '0+');
-      $_SESSION['error'] = 'Invalid number format for new customer.phone number should start with +255.';
-    }
-
-
-  // Check if customer already exists by email or mobile
-  $stmt = $dbh->prepare("SELECT * FROM customer WHERE email = ? OR mobile = ?");
-  $stmt->execute([$email_cust, $mobile]);
-  $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-
-  if (!$existing) {
-    // Insert new customer
-    $stmt = $dbh->prepare("INSERT INTO customer (fullName, email, mobile, phone2, address, address2, city, district, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$fullname, $email_cust, $mobile, $phone2, $address1, $address2, $city, $district, $status]);
-    $customer_id = $dbh->lastInsertId();
-  } else {
-    // Use existing customer id
-    $customer_id = $existing['id'];
-  }
-  // Set POST value for customer id to use in sales
-  $_POST['cmdcustomer'] = $fullname;
-  }
-}
-// --- END new customer creation ---
-
 if(isset($_POST["btnsave"])){
   // Check that all required fields are not empty
   $requiredFields = [
@@ -286,95 +234,40 @@ if(isset($_POST["btnsave"])){
       <div class="row">
         <div class="col-md-3">
         <div class="form-group">
-          <label>Choose Customer</label>
-          <?php
-          // Fetch customers for dropdown
-          $sql = "SELECT * FROM customer";
-          $customers = $dbh->query($sql);
-          $customers->setFetchMode(PDO::FETCH_ASSOC);
-          echo '<select name="cmdcustomer" id="cmdcustomer" class="form-control select2" style="width: 100%;" onchange="toggleNewCustomerForm(this.value)" required>';
-          echo '<option value="">Select Customer</option>';
-          while ($row = $customers->fetch()) {
-          // If form was submitted and this is the selected customer, mark as selected
-          $selected = (isset($_POST['cmdcustomer']) && $_POST['cmdcustomer'] == $row['id']) ? 'selected' : '';
-          echo '<option value="' . htmlspecialchars($row['id']) . '" ' . $selected . '>' . htmlspecialchars($row['fullName']) . '</option>';
-          }
-          // Option for adding new customer
-          $selected_new = (isset($_POST['cmdcustomer']) && $_POST['cmdcustomer'] == '__add_new__') ? 'selected' : '';
-          echo '<option value="__add_new__" ' . $selected_new . '>Add New Customer</option>';
-          echo '</select>';
-          ?>
-          <div id="newCustomerForm" style="display:<?php echo (isset($_POST['cmdcustomer']) && $_POST['cmdcustomer'] == '__add_new__') ? 'block' : 'none'; ?>; margin-top:10px;">
-          <input type="text" class="form-control mb-2" name="new_customer_fullname" id="new_customer_fullname" placeholder="Full Name" value="<?php echo isset($_POST['new_customer_fullname']) ? htmlspecialchars($_POST['new_customer_fullname']) : ''; ?>">
-          <input type="email" class="form-control mb-2" name="new_customer_email" id="new_customer_email" placeholder="Email" value="<?php echo isset($_POST['new_customer_email']) ? htmlspecialchars($_POST['new_customer_email']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_mobile" id="new_customer_mobile" placeholder="Mobile" value="<?php echo isset($_POST['new_customer_mobile']) ? htmlspecialchars($_POST['new_customer_mobile']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_phone2" id="new_customer_phone2" placeholder="Phone 2" value="<?php echo isset($_POST['new_customer_phone2']) ? htmlspecialchars($_POST['new_customer_phone2']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_address1" id="new_customer_address1" placeholder="Address 1" value="<?php echo isset($_POST['new_customer_address1']) ? htmlspecialchars($_POST['new_customer_address1']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_address2" id="new_customer_address2" placeholder="Address 2" value="<?php echo isset($_POST['new_customer_address2']) ? htmlspecialchars($_POST['new_customer_address2']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_city" id="new_customer_city" placeholder="City" value="<?php echo isset($_POST['new_customer_city']) ? htmlspecialchars($_POST['new_customer_city']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_district" id="new_customer_district" placeholder="District" value="<?php echo isset($_POST['new_customer_district']) ? htmlspecialchars($_POST['new_customer_district']) : ''; ?>">
-          <input type="text" class="form-control mb-2" name="new_customer_status" id="new_customer_status" placeholder="Status" value="<?php echo isset($_POST['new_customer_status']) ? htmlspecialchars($_POST['new_customer_status']) : ''; ?>">
-          </div>
-          <script>
-          function toggleNewCustomerForm(val) {
-            var form = document.getElementById('newCustomerForm');
-            if (val === '__add_new__') {
-            form.style.display = 'block';
-            document.getElementById('new_customer_fullname').required = true;
-            document.getElementById('new_customer_email').required = true;
-            document.getElementById('new_customer_mobile').required = true;
-            document.getElementById('new_customer_phone2').required = true;
-            document.getElementById('new_customer_address1').required = true;
-            document.getElementById('new_customer_address2').required = true;
-            document.getElementById('new_customer_city').required = true;
-            document.getElementById('new_customer_district').required = true;
-            document.getElementById('new_customer_status').required = true;
-            } else {
-            form.style.display = 'none';
-            document.getElementById('new_customer_fullname').required = false;
-            document.getElementById('new_customer_email').required = false;
-            document.getElementById('new_customer_mobile').required = false;
-            document.getElementById('new_customer_phone2').required = false;
-            document.getElementById('new_customer_address1').required = false;
-            document.getElementById('new_customer_address2').required = false;
-            document.getElementById('new_customer_city').required = false;
-            document.getElementById('new_customer_district').required = false;
-            document.getElementById('new_customer_status').required = false;
-            }
-          }
-          </script>
+          <label>Customer Name</label>
+          <input type="text" class="form-control" name="cmdcustomer" id="cmdcustomer" placeholder="Enter customer name" required>
         </div>
-                <!-- /.form-group -->
-                <div class="form-group">
-                    <label for="exampleInputEmail1">Sales Date</label>
-                    <input type="date" class="form-control" name="txtsalesDate" id="txtsalesDate" size="77" value="<?php if (isset($_POST['txtsalesDate']))?><?php echo $_POST['txtsalesDate']; ?>"  >
-                  </div>
+        <!-- /.form-group -->
+        <div class="form-group">
+            <label for="exampleInputEmail1">Sales Date</label>
+            <input type="date" class="form-control" name="txtsalesDate" id="txtsalesDate" size="77" value="<?php if (isset($_POST['txtsalesDate']))?><?php echo $_POST['txtsalesDate']; ?>"  >
+          </div>
 
-                  <div class="form-group">
-                    <label for="exampleInputEmail1">Product ID</label>
-                    <input type="text" class="form-control" name="txtproductID" id="txtproductID" size="77" value="<?php if (isset($_POST['txtproductID']))?><?php echo $_POST['txtproductID']; ?>" readonly >
-                  </div>
+          <div class="form-group">
+            <label for="exampleInputEmail1">Product ID</label>
+            <input type="text" class="form-control" name="txtproductID" id="txtproductID" size="77" value="<?php if (isset($_POST['txtproductID']))?><?php echo $_POST['txtproductID']; ?>" readonly >
+          </div>
 
-                  
-                
-              </div>
-              <div class="col-md-3">
-                
-              <div class="form-group">
-                  <label>Select Drug</label>
-                         <?php
-			      $sql = "select * from tblproduct";
-             $drug = $dbh->query($sql);                       
-             $drug->setFetchMode(PDO::FETCH_ASSOC);
-             echo '<select name="cmddrug"  id="cmddrug" class="form-control select2" style="width: 100%;" onchange="GetDrugDetail1(this.value)">';
-			 			     echo '<option value="">Select Drug</option>';
-             while ( $row = $drug->fetch() ) 
-             {
-                echo '<option value="'.$row['product_name'].'">'.$row['product_name'].'</option>';
-             }
+          
+        
+      </div>
+      <div class="col-md-3">
+        
+      <div class="form-group">
+          <label>Select Drug</label>
+                 <?php
+		      $sql = "select * from tblproduct";
+         $drug = $dbh->query($sql);                       
+         $drug->setFetchMode(PDO::FETCH_ASSOC);
+         echo '<select name="cmddrug"  id="cmddrug" class="form-control select2" style="width: 100%;" onchange="GetDrugDetail1(this.value)">';
+					     echo '<option value="">Select Drug</option>';
+         while ( $row = $drug->fetch() ) 
+         {
+            echo '<option value="'.$row['product_name'].'">'.$row['product_name'].'</option>';
+         }
 
-             echo '</select>';
-			     ?>     
+         echo '</select>';
+		     ?>     
 
 
 
