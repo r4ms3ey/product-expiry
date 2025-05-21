@@ -203,7 +203,7 @@ if(isset($_POST["btnsave"])){
       <div class="col-sm-6">
       <ol class="breadcrumb float-sm-right">
         <li class="breadcrumb-item"><a href="#">Home</a></li>
-        <li class="breadcrumb-item active">Stock In</li>
+        <li class="breadcrumb-item active">Add Sales</li>
       </ol>
       </div>
     </div>
@@ -216,7 +216,7 @@ if(isset($_POST["btnsave"])){
     <!-- SELECT2 EXAMPLE -->
     <div class="card card-default">
       <div class="card-header">
-      <h3 class="card-title">Stock In</h3>
+      <h3 class="card-title">Add Sales</h3>
 
       <div class="card-tools">
         <button type="button" class="btn btn-tool" data-card-widget="collapse">
